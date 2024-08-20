@@ -3,7 +3,7 @@ from collections import defaultdict
 from typing import List, Tuple, Callable
 from aimakerspace.openai_utils.embedding import EmbeddingModel
 import asyncio
-
+from scipy.spatial.distance import euclidean
 
 def cosine_similarity(vector_a: np.array, vector_b: np.array) -> float:
     """Computes the cosine similarity between two vectors."""
@@ -12,6 +12,9 @@ def cosine_similarity(vector_a: np.array, vector_b: np.array) -> float:
     norm_b = np.linalg.norm(vector_b)
     return dot_product / (norm_a * norm_b)
 
+def euclidean_distance(vector_a: np.array, vector_b: np.array) -> float:
+    """Computes the Euclidean distance between two vectors."""
+    return euclidean(vector_a, vector_b)
 
 class VectorDatabase:
     def __init__(self, embedding_model: EmbeddingModel = None):
@@ -53,7 +56,6 @@ class VectorDatabase:
             self.insert(text, np.array(embedding))
         return self
 
-
 if __name__ == "__main__":
     list_of_text = [
         "I like to eat broccoli and bananas.",
@@ -67,15 +69,23 @@ if __name__ == "__main__":
     vector_db = asyncio.run(vector_db.abuild_from_list(list_of_text))
     k = 2
 
-    searched_vector = vector_db.search_by_text("I think fruit is awesome!", k=k)
-    print(f"Closest {k} vector(s):", searched_vector)
+    # Search using Cosine Similarity (default)
+    cosine_results = vector_db.search_by_text("I think fruit is awesome!", k=k)
+    print(f"Closest {k} vector(s) using Cosine Similarity:", cosine_results)
 
-    retrieved_vector = vector_db.retrieve_from_key(
-        "I like to eat broccoli and bananas."
+    # Search using Euclidean Distance
+    euclidean_results = vector_db.search_by_text(
+        "I think fruit is awesome!", k=k, distance_measure=euclidean_distance
     )
-    print("Retrieved vector:", retrieved_vector)
+    print(f"Closest {k} vector(s) using Euclidean Distance:", euclidean_results)
 
-    relevant_texts = vector_db.search_by_text(
+    # Retrieve texts
+    cosine_texts = vector_db.search_by_text(
         "I think fruit is awesome!", k=k, return_as_text=True
     )
-    print(f"Closest {k} text(s):", relevant_texts)
+    print(f"Closest {k} text(s) using Cosine Similarity:", cosine_texts)
+
+    euclidean_texts = vector_db.search_by_text(
+        "I think fruit is awesome!", k=k, return_as_text=True, distance_measure=euclidean_distance
+    )
+    print(f"Closest {k} text(s) using Euclidean Distance:", euclidean_texts)
